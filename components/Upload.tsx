@@ -15,7 +15,6 @@ const Upload = ({ onComplete }: UploadProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -38,41 +37,6 @@ const Upload = ({ onComplete }: UploadProps) => {
     (file: File) => {
       if (!isSignedIn) return;
 
-      // Clear any existing timers before starting a new upload
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-
-      // Validate file type
-      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-      const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
-      const hasValidType = allowedTypes.includes(file.type);
-      const hasValidExtension = allowedExtensions.some((ext) =>
-        file.name.toLowerCase().endsWith(ext),
-      );
-
-      if (!hasValidType && !hasValidExtension) {
-        setError(
-          "Invalid file type. Please upload a JPEG, PNG, or WebP image.",
-        );
-        return;
-      }
-
-      // Validate file size (10 MB max)
-      const maxSizeBytes = 10 * 1024 * 1024;
-      if (file.size > maxSizeBytes) {
-        setError(
-          `File size exceeds 10 MB limit. Your file is ${(file.size / (1024 * 1024)).toFixed(2)} MB.`,
-        );
-        return;
-      }
-
-      setError(null);
       setFile(file);
       setProgress(0);
 
@@ -80,7 +44,6 @@ const Upload = ({ onComplete }: UploadProps) => {
       reader.onerror = () => {
         setFile(null);
         setProgress(0);
-        setError("Failed to read file. Please try again.");
       };
       reader.onloadend = () => {
         const base64Data = reader.result as string;
@@ -125,7 +88,8 @@ const Upload = ({ onComplete }: UploadProps) => {
     if (!isSignedIn) return;
 
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
+    const allowedTypes = ["image/jpeg", "image/png"];
+    if (droppedFile && allowedTypes.includes(droppedFile.type)) {
       processFile(droppedFile);
     }
   };
@@ -165,8 +129,7 @@ const Upload = ({ onComplete }: UploadProps) => {
                 ? "Click to upload or just drag and drop"
                 : "Sign in or sign up with Puter to upload"}
             </p>
-            {error && <p className="error">{error}</p>}
-            <p className="help">Maximum file size 10 MB.</p>
+            <p className="help">Maximum file size 50 MB.</p>
           </div>
         </div>
       ) : (
